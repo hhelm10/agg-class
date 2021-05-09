@@ -33,6 +33,32 @@ def get_tree_distances(n, decision_paths, labeled_inds, counts, max_tree_distanc
                     else:
                         path1_ind = path1_ind[0]
 
+
+def stratified_sample(y, p=0.67, replace=False):
+    unique_y, counts = np.unique(y, return_counts=True)
+    n_per_class = np.array([int(np.math.floor(p*c)) for c in counts])
+    n_per_class = np.array([max([npc, 1]) for npc in n_per_class])
+    
+    inds = [np.random.choice(np.where(y == unique_y[i])[0], size=npc, replace=replace) for i, npc in enumerate(n_per_class)]
+    
+    return np.concatenate(inds)
+
+
+def gem(x, p=1):
+    """ generalized mean pooling -- interpolation between mean and max """
+    nobs, ndim = x.shape
+    
+    y = np.zeros(ndim)
+    for r in range(nobs):
+        for c in range(ndim):
+            y[c] += x[r,c] ** p
+    
+    y /= nobs
+    
+    for c in range(ndim):
+        y[c] = y[c] ** (1 / p)
+    
+    return y
                     tree_distances[i,j] = (k + path1_ind + 2) / 2
                     break
                 tree_distances[i,j] = (min1 + min2) / 2
