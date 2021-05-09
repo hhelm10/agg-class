@@ -33,6 +33,14 @@ def get_tree_distances(n, decision_paths, labeled_inds, counts, max_tree_distanc
                     else:
                         path1_ind = path1_ind[0]
 
+                    tree_distances[i,j] = (k + path1_ind + 2) / 2
+                    break
+                
+                tree_distances[i,j] = (min1 + min2) / 2
+                
+    return tree_distances
+    
+
 
 def stratified_sample(y, p=0.67, replace=False):
     unique_y, counts = np.unique(y, return_counts=True)
@@ -59,12 +67,7 @@ def gem(x, p=1):
         y[c] = y[c] ** (1 / p)
     
     return y
-                    tree_distances[i,j] = (k + path1_ind + 2) / 2
-                    break
-                tree_distances[i,j] = (min1 + min2) / 2
                 
-    return tree_distances
-    
     
 @jit(nopython=True, cache=True, nogil=True)
 def get_decision_paths(n, children_array):
