@@ -1,2 +1,2 @@
-# task-similarity
-a repo for exploring task-similarity and its utility for downstream inference
+# agg-class
+manifold aware learning via agglomerative clustering
