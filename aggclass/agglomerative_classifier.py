@@ -13,8 +13,7 @@ except:
 from joblib import delayed, Parallel
 from numba import jit
 
-from .agglomerative_helpers import get_tree_distances, get_decision_paths
-from .helpers import stratified_sample, gem
+from .helpers import get_tree_distances, get_decision_paths, stratified_sample, gem
 
 import itertools
 
