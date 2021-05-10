@@ -63,17 +63,17 @@ class AgglomerativeClassifier:
 
             self.model.fit(X)
         else:  
-            if self.affinity == 'cosine' and self.linkage != 'ward':
-                X = X / np.sqrt((X ** 2).sum(axis=-1, keepdims=True))
-
-                pairwise_distances_ = 1 - X @ X.T
-                np.fill_diagonal(pairwise_distances_, 0)
+            if self.linkage != 'ward':
+                pairwise_distances_ = pairwise_distances(metric=self.affinity, n_jobs=1)
 
                 self.model = AgglomerativeClustering(n_clusters=self.n_clusters,
                     affinity='precomputed', 
                     linkage=self.linkage,
                     compute_full_tree=True,
                     ).fit(pairwise_distances_)
+
+                self.nn = NearestNeighbors(n_neighbors=self.n_neighbors, metric='precomputed')
+                self.nn.fit(pairwise_distances_)
 
                 del pairwise_distances_
             else:
@@ -84,8 +84,8 @@ class AgglomerativeClassifier:
                     )
                 self.model.fit(X)
                     
-        self.nn = NearestNeighbors(n_neighbors=self.n_neighbors, metric=self.affinity)
-        self.nn.fit(X)
+                self.nn = NearestNeighbors(n_neighbors=self.n_neighbors, metric=self.affinity)
+                self.nn.fit(X)
         
         labeled_inds_by_class = [np.where(y[self.labeled_inds] == c)[0] for c in self.classes_]
         decision_paths, counts = get_decision_paths(self.n, self.model.children_)
