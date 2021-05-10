@@ -53,7 +53,6 @@ class AgglomerativeClassifier:
         if -1 in self.classes_:
             self.classes_ = self.classes_[1:]
         
-
         if self.linkage=='gini' or self.linkage=='bonferroni':
             self.model = Genie(n_clusters=self.n_clusters, 
                 compute_all_cuts=False,
@@ -92,6 +91,8 @@ class AgglomerativeClassifier:
         
         self._get_tree_distances(decision_paths, counts)        
         self._get_similarities_to_classes(labeled_inds_by_class)
+
+        return self
         
                                     
     def _get_tree_distances(self, decision_paths, counts):
@@ -118,8 +119,6 @@ class AgglomerativeClassifier:
     
     def predict(self, X):
         return self.classes_[np.argmax(self.predict_proba(X), axis=1)]
-
-
 
 
 class ProjectionAgglomerativeClassifier(AgglomerativeClassifier):
@@ -251,9 +250,11 @@ class AgglomerativeEnsemble:
                 
         return agg_class
     
+
     def predict_proba(self, X):
         condensed_predict = lambda agg_class: agg_class.predict_proba(X)
         return np.mean(Parallel(n_jobs=self.n_jobs)(delayed(condensed_predict)(agg_class) for agg_class in self.ensemble), axis=0)
         
+
     def predict(self, X):
         return np.argmax(self.predict_proba(X), axis=1)
