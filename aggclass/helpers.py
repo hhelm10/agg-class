@@ -33,7 +33,7 @@ def get_tree_distances(n, decision_paths, labeled_inds, counts, max_tree_distanc
                     else:
                         path1_ind = path1_ind[0]
 
-                    tree_distances[i,j] = (k + path1_ind + 2) / 2
+                    tree_distances[i,j] = (k + path1_ind) / 2
                     break
                 
                 tree_distances[i,j] = (min1 + min2) / 2

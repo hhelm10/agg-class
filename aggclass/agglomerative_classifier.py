@@ -3,6 +3,8 @@ import numpy as np
 from sklearn.cluster import AgglomerativeClustering 
 from sklearn.neighbors import NearestNeighbors
 from sklearn.random_projection import GaussianRandomProjection
+from sklearn.metrics import pairwise_distances
+
 from scipy.special import softmax
 
 try:
@@ -11,13 +13,7 @@ except:
     pass
 
 from joblib import delayed, Parallel
-from numba import jit
-
 from .helpers import get_tree_distances, get_decision_paths, stratified_sample, gem
-
-import itertools
-
-from sklearn.metrics import pairwise_distances
 
 
 class AgglomerativeClassifier:
@@ -63,7 +59,7 @@ class AgglomerativeClassifier:
             self.model.fit(X)
         else:  
             if self.linkage != 'ward':
-                pairwise_distances_ = pairwise_distances(metric=self.affinity, n_jobs=1)
+                pairwise_distances_ = pairwise_distances(X, metric=self.affinity, n_jobs=1)
 
                 self.model = AgglomerativeClustering(n_clusters=self.n_clusters,
                     affinity='precomputed', 
@@ -71,9 +67,7 @@ class AgglomerativeClassifier:
                     compute_full_tree=True,
                     ).fit(pairwise_distances_)
 
-                self.nn = NearestNeighbors(n_neighbors=self.n_neighbors, metric='precomputed')
-                self.nn.fit(pairwise_distances_)
-
+                
                 del pairwise_distances_
             else:
                 self.model = AgglomerativeClustering(n_clusters=self.n_clusters, 
@@ -83,8 +77,9 @@ class AgglomerativeClassifier:
                     )
                 self.model.fit(X)
                     
-                self.nn = NearestNeighbors(n_neighbors=self.n_neighbors, metric=self.affinity)
-                self.nn.fit(X)
+        self.nn = NearestNeighbors(n_neighbors=self.n_neighbors, metric=self.affinity)
+        self.nn.fit(X)
+
         
         labeled_inds_by_class = [np.where(y[self.labeled_inds] == c)[0] for c in self.classes_]
         decision_paths, counts = get_decision_paths(self.n, self.model.children_)
@@ -97,9 +92,9 @@ class AgglomerativeClassifier:
                                     
     def _get_tree_distances(self, decision_paths, counts):
         self.tree_distances = get_tree_distances(self.n, decision_paths, self.labeled_inds, counts, self.max_tree_distance)
-        self.scores = np.log(self.tree_distances) + 1
+        self.scores = np.log(self.tree_distances + 1) + 1
         self.scores = 1 / self.scores
-        self.scores = softmax(self.soft_max_multiplier * self.scores, axis=0)
+        self.scores = softmax(self.soft_max_multiplier * self.scores, axis=1)
         
         
     def _get_similarities_to_classes(self, labeled_inds_by_class):
@@ -224,18 +219,15 @@ class AgglomerativeEnsemble:
             all_supervised=False
 
         if self.p_inbag >= 1:
-            self.p_inbag=1
-            replace=False
+            bag_inds = np.arange(X.shape[0])
         else:
             replace=True
-  
-
-        sbag_inds = stratified_sample(y[self.labeled_inds], p=self.p_inbag, replace=replace)
-        if all_supervised:
-            bag_inds = sbag_inds
-        else:
-            ssbag_inds = np.random.choice(len(self.unlabeled_inds), size=int(len(y[self.unlabeled_inds])*self.p_inbag), replace=True)
-            bag_inds = np.concatenate((self.labeled_inds[sbag_inds], ssbag_inds))
+            sbag_inds = stratified_sample(self.labeled_inds, p=self.p_inbag, replace=replace)
+            if all_supervised:
+                bag_inds = sbag_inds
+            else:
+                ssbag_inds = np.random.choice(self.unlabeled_inds, size=int(len(self.unlabeled_inds)*self.p_inbag), replace=replace)
+                bag_inds = np.concatenate((self.labeled_inds[sbag_inds], ssbag_inds))
         
 
         agg_class = ProjectionAgglomerativeClassifier(projector=self.projector, projection_kwargs=self.projection_kwargs, 
